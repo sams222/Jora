@@ -1,6 +1,12 @@
 # Jora — AI Climbing Coach
 
-Jora is a multimodal AI system that analyzes climbing videos and delivers personalized technique coaching. Built for the GDG ML Hackweek 2026.
+*Upload a climbing video, get coached like you had a spotter.*
+
+Jora is a multimodal AI system that analyzes climbing videos and delivers personalized
+technique coaching — grounded in measured joint angles, not vibes. Built for GDG ML Hackweek 2026.
+
+<!-- TODO: add a demo GIF here (upload -> analysis -> voice feedback). This is the single
+     highest-impact addition to this README. -->
 
 Upload a climbing video and Jora will:
 1. **Detect your body pose** frame-by-frame using MediaPipe (33 landmarks, 7 joint angles)
@@ -8,6 +14,16 @@ Upload a climbing video and Jora will:
 3. **Score your technique** on a 5-dimension rubric (arm efficiency, hip positioning, foot precision, movement efficiency, body tension)
 4. **Generate coaching feedback** via Gemini 2.5 Flash, grounded in the detected moves, rubric scores, and actual angle telemetry
 5. **Synthesize voice coaching** with ElevenLabs TTS, presented with an audio-reactive visualizer
+
+## Why we built it
+
+Coaching is the bottleneck in climbing. Good technique feedback requires someone
+experienced watching you climb, and most people training alone in a gym never get it —
+they plateau without knowing which habit is holding them back.
+
+Video is the obvious substitute, but "watch yourself back" only helps if you already know
+what to look for. Jora closes that gap: it measures what your body actually did, scores it
+against a rubric, and explains the fix out loud.
 
 ## Quick Start
 
@@ -135,6 +151,26 @@ Rubric scores and few-shot examples are injected into the Gemini prompt to groun
 | Video Processing | OpenCV + ffmpeg |
 | Frontend | Vanilla HTML/CSS/JS + Canvas API |
 | Package Manager | uv |
+
+## Engineering challenges
+
+**Keeping the LLM honest.** A vision model handed raw frames will happily invent
+plausible-sounding climbing advice. We constrained it instead: the move classifier and
+rubric model run first, and Gemini receives the detected moves, the rubric scores, and the
+actual angle telemetry alongside the frames. The feedback has to be consistent with
+numbers we measured, which makes it specific ("your hips drifted off the wall on the
+deadpoint") rather than generic.
+
+**Training a classifier on a hackathon-sized dataset.** We had ~15 hand-labeled videos,
+about 600 windows. Rather than feed raw pixels to a hungry model, we reduced each frame to
+7 joint angles and trained a small 1D CNN on 15-frame windows of angles plus their
+velocities and accelerations. Working in angle space instead of pixel space made the model
+learn from a dataset that size — and made it indifferent to camera position, lighting, and
+what the climber was wearing.
+
+**Browser-playable output.** MediaPipe and OpenCV happily write video that browsers refuse
+to play. The pipeline re-encodes the annotated result to H.264 via ffmpeg so the result
+plays inline instead of downloading.
 
 ## Development
 
